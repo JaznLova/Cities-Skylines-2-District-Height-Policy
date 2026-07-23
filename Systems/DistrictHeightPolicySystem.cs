@@ -155,14 +155,20 @@ namespace DistrictMod.Systems
                     }
                     else
                     {
-                        // Deleted alone tears the entity down but leaves dependent systems
-                        // (render batches, zone/infoview aggregation) holding references to
-                        // it — which surfaces as a building that only disappears once hover
-                        // forces its batch to rebuild, and as dangling PrefabRefs in
-                        // InfoviewsUISystem.BindZoneInfos. Updated is the game's signal to
-                        // re-evaluate the entity, so those consumers drop it cleanly.
+                        // Route the deletion through EndFrameBarrier and let the game's own
+                        // culling/cleanup systems tear the entity (and its render batch) down.
+                        //
+                        // Do NOT also add Updated here. Updated means "re-evaluate and rebuild
+                        // this entity's render batch"; on an entity that is simultaneously
+                        // Deleted, the culling system re-registers a mesh instance that the
+                        // cleanup system then destroys, orphaning that instance in the batch.
+                        // The orphan renders as a ghost building that only clears when hover
+                        // forces a batch rebuild (and fully clears on reload) — the exact
+                        // "hovering shows a delete overlay but the building never goes away"
+                        // symptom. The stale-reference problems Updated was meant to solve came
+                        // from the old Harmony patch's immediate mid-frame playback, which the
+                        // barrier already fixes.
                         ecb.AddComponent<Deleted>(entity);
-                        ecb.AddComponent<Updated>(entity);
                         Mod.log.Debug(
                             $"[DistrictHeightPolicySystem] Marking building {entity.Index} (height {buildingHeight:F1}m) deleted — no active tier covers it in district {districtEntity.Index}");
                     }
