@@ -110,7 +110,7 @@ namespace DistrictMod.UI
             if (selected == Entity.Null || !EntityManager.HasComponent<District>(selected)) return;
             if (!System.Enum.TryParse<HeightTier>(tierName, out var tier)) return;
             DistrictPolicyStore.ToggleTier(selected, tier);
-            DistrictMod.Harmony.ZoneSpawnPatch.ResetLotState();
+            LotPolicyState.ResetLotState();
             Mod.log.Info($"[DistrictPolicyUISystem] Toggled {tierName} for district {selected.Index}");
         }
     }

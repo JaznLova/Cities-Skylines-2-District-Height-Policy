@@ -61,11 +61,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<!--0Harmony.dll ships alongside the mod; the game does not provide it-->
-		<PackageReference Include="Lib.Harmony" Version="2.2.2" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<Reference Update="System">
 			<Private>false</Private>
 		</Reference>

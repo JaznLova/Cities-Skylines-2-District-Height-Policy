@@ -5,6 +5,9 @@ obj/
 .idea/
 *.user
 
+# ILPP post-processor scratch (ilpp.pid churns on every build)
+Library/
+
 # Local mod build outputs
 *.dll
 *.pdb

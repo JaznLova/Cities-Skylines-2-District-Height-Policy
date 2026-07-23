@@ -14,7 +14,7 @@
 
 		Create the perfect skyline height for your city! <b>District Height Policy</b> allows you to create custom districts and assign specific height limits to make your city's height transitions completely seamless.
 
-		Everything is easy to tweak—you can adjust all values directly yourself in the Settings menu. This mod bundles Lib.Harmony (MIT-licensed) and has no other mod dependencies.
+		Everything is easy to tweak—you can adjust all values directly yourself in the Settings menu. This mod has no dependencies.
 		<h2>
 			<b>How It Works</b>
 		</h2>
@@ -42,7 +42,7 @@
 	<!--Tag, can be set multiple times-->
 	<Tag Value="Code Mod" />
 	<!--Link to the forum post where the mod can be discussed-->
-	<ForumLink Value="" />
+	<ForumLink Value="https://forum.paradoxplaza.com/forum/threads/district-height-policy-support-and-feedback.1935959/" />
 	<!--Version of the mod-->
 	<ModVersion Value="1.0.0" />
 	<!--Recommended version of the base game to use the mod-->
@@ -52,7 +52,7 @@
 	<!--Required DLC, can be set multiple times. Supported values are "Landmark Buildings", "San Fransisco Set", "Beach Properties", "Urban Promenades", "Modern Architecture"-->
 	<RequiredDLC Value="" />
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
-	<ChangeLog Value="" />
+	<ChangeLog Value="Added forum discussion link and updated configuration metadata." />
 	<!--<ChangeLog>
 	</ChangeLog>-->
 	<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->

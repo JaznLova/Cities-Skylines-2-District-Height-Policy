@@ -23,7 +23,6 @@ namespace DistrictHeightPolicy
         public static string ModDirectory { get; private set; }
 
         private Setting m_Setting;
-        private HarmonyLib.Harmony m_Harmony;
 
         public void OnLoad(UpdateSystem updateSystem)
         {
@@ -53,13 +52,9 @@ namespace DistrictHeightPolicy
             AssetDatabase.global.LoadSettings(nameof(DistrictHeightPolicy), m_Setting, new Setting(this));
 
             // m_Setting now holds either the values restored from disk or its plain C#
-            // defaults — push them onto BuildingHeightLoader/ZoneSpawnPatch, the stores the
-            // Harmony patches actually read from.
+            // defaults — push them onto BuildingHeightLoader/LotPolicyState, the stores the
+            // enforcement system actually reads from.
             m_Setting.PushToRuntime();
-
-            m_Harmony = new HarmonyLib.Harmony(nameof(DistrictHeightPolicy));
-            m_Harmony.PatchAll(Assembly.GetExecutingAssembly());
-            log.Info("Harmony patches applied.");
 
             // UISystemBase.OnCreate runs after the city is loaded, so the panel injection
             // it performs no longer needs the frame delay the BepInEx build required.
@@ -68,6 +63,13 @@ namespace DistrictHeightPolicy
 
             updateSystem.UpdateAt<DistrictPolicySerializationSystem>(SystemUpdatePhase.Serialize);
             log.Info("DistrictPolicySerializationSystem registered.");
+
+            // Height enforcement runs as its own system in the simulation group. It used to be a
+            // Harmony postfix on ZoneSpawnSystem.OnUpdate, but doing structural changes from
+            // inside another system's update broke Game.SafeCommandBufferSystem for the rest of
+            // the frame ("Trying to create EntityCommandBuffer when it's not allowed!").
+            updateSystem.UpdateAt<DistrictHeightPolicySystem>(SystemUpdatePhase.GameSimulation);
+            log.Info("DistrictHeightPolicySystem registered.");
         }
 
         private void LoadHeightData()
@@ -86,9 +88,6 @@ namespace DistrictHeightPolicy
         public void OnDispose()
         {
             log.Info(nameof(OnDispose));
-
-            m_Harmony?.UnpatchAll(nameof(DistrictHeightPolicy));
-            m_Harmony = null;
 
             if (m_Setting != null)
             {

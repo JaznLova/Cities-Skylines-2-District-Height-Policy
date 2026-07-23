@@ -4,8 +4,8 @@ using Game.Modding;
 using Game.Settings;
 using Game.UI;
 using System.Collections.Generic;
+using DistrictMod.Components;
 using DistrictMod.Data;
-using DistrictMod.Harmony;
 
 namespace DistrictHeightPolicy
 {
@@ -30,7 +30,7 @@ namespace DistrictHeightPolicy
         // from the "default" Setting instance LoadSettings diffs against (same backing state),
         // so nothing ever gets written to the settings file. PushToRuntime() (called from
         // Mod.cs after LoadSettings, and from each setter below) is what applies these values
-        // to BuildingHeightLoader/ZoneSpawnPatch for the patches to actually use. ---
+        // to BuildingHeightLoader/LotPolicyState for the runtime to actually use. ---
 
         private float m_SmallMin = 0f, m_SmallMax = 24f;
         private float m_MediumMin = 24f, m_MediumMax = 32f;
@@ -126,8 +126,8 @@ namespace DistrictHeightPolicy
             BuildingHeightLoader.SetRange(HeightTier.Tall, m_TallMin, m_TallMax);
             BuildingHeightLoader.SetRange(HeightTier.SuperTall, m_SuperTallMin, m_SuperTallMax);
             BuildingHeightLoader.SetRange(HeightTier.Skyscraper, m_SkyscraperMin, m_SkyscraperMax);
-            ZoneSpawnPatch.MaxRerolls = m_MaxRerolls;
-            ZoneSpawnPatch.ResetLotState();
+            LotPolicyState.MaxRerolls = m_MaxRerolls;
+            LotPolicyState.ResetLotState();
         }
 
         public override void SetDefaults()

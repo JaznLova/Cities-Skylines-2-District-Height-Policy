@@ -4,7 +4,6 @@ using Game;
 using Unity.Entities;
 using DistrictMod.Components;
 using DistrictMod.Data;
-using DistrictMod.Harmony;
 using DistrictHeightPolicy;
 
 namespace DistrictMod.Systems
@@ -25,7 +24,7 @@ namespace DistrictMod.Systems
         public void SetDefaults(Context context)
         {
             DistrictPolicyStore.DistrictTiers.Clear();
-            ZoneSpawnPatch.ClearSessionState();
+            LotPolicyState.ClearSessionState();
         }
 
         public void Serialize<TWriter>(TWriter writer) where TWriter : IWriter
@@ -52,7 +51,7 @@ namespace DistrictMod.Systems
                 DistrictPolicyStore.DistrictTiers[entity] = MaskToTiers(mask);
             }
 
-            ZoneSpawnPatch.ClearSessionState();
+            LotPolicyState.ClearSessionState();
             Mod.log.Info($"[DistrictPolicySerializationSystem] Deserialized {count} district polic{(count == 1 ? "y" : "ies")}.");
         }
 
