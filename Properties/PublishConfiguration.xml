@@ -1,0 +1,64 @@
+﻿<Publish>
+	<!--Id must be set in order to update existed mod. it is not required for publishing mod for the first time-->
+	<ModId Value="" />
+	<!--Name of the mod to display to players-->
+	<DisplayName Value="District Height Policy" />
+	<!--Short description of the mod-->
+	<ShortDescription Value="Take full control of your city's horizon. Define districts and set custom height limits for each zone to create smooth, natural transitions from quiet suburbs to massive downtown towers. Fully configurable in the Settings menu—no extra mod dependencies required." />
+	<!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
+	<!--LongDescription Value="This is a long description" /-->
+	<LongDescription>
+		<h1>
+			<b>District Height Policy</b>
+		</h1>
+
+		Create the perfect skyline height for your city! <b>District Height Policy</b> allows you to create custom districts and assign specific height limits to make your city's height transitions completely seamless.
+
+		Everything is easy to tweak—you can adjust all values directly yourself in the Settings menu. This mod bundles Lib.Harmony (MIT-licensed) and has no other mod dependencies.
+		<h2>
+			<b>How It Works</b>
+		</h2>
+
+		<b>Height Checking</b>: When a building spawns, the mod calculates its height against the policy set for that district. If it fits within the limit, it spawns; if it’s too tall or short, it is removed so another prefab can take its place.
+
+		<b>Smart Fallback System</b>: If no building fits the zone type or plot size for a strict policy, the mod will fall back to regular zoning after 10 rerolls. (For example, since no High Density Residential building exists for the "Small" policy, it gracefully reverts to standard spawning).
+
+		<h2>
+			<b>Tips for Best Results</b>
+		</h2>
+
+		<b>Maintain Asset Diversity</b>: Strictly limiting height can restrict the variety of assets that spawn. It is highly suggested to use at least two height preferences or mix multiple zone types across your districts for a more diverse, natural look.
+
+		<b>Optimize Lot Sizes</b>: Sometimes manually deleting assets to trigger better plot size generation works wonders to improve your overall city aesthetics!
+		<b>
+			<h2>Note!</h2>: The mod is only designed to work for Residential zone type.
+		</b>
+	</LongDescription>
+	<!--Thumbnail-->
+	<Thumbnail Value="Properties/ThumbnailSquare.png" />
+	<!--Screenshot, can be set multiple times-->
+	<Screenshot Value="Properties/Thumbnail.png" />
+	<Screenshot Value="Properties/Demonstration.png" />
+	<!--Tag, can be set multiple times-->
+	<Tag Value="Code Mod" />
+	<Tag Value="Zones" />
+	<Tag Value="Policies" />
+	<!--Link to the forum post where the mod can be discussed-->
+	<ForumLink Value="" />
+	<!--Version of the mod-->
+	<ModVersion Value="1.0.0" />
+	<!--Recommended version of the base game to use the mod-->
+	<GameVersion Value="1.6.*" />
+	<!--Dependency for the mod, can be set multiple times-->
+	<Dependency Id="" />
+	<!--Required DLC, can be set multiple times. Supported values are "Landmark Buildings", "San Fransisco Set", "Beach Properties", "Urban Promenades", "Modern Architecture"-->
+	<RequiredDLC Value="" />
+	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
+	<ChangeLog Value="" />
+	<!--<ChangeLog>
+	</ChangeLog>-->
+	<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
+	<ExternalLink Type="" Url="" />
+	<!--Supported values Public, Private, Unlisted-->
+	<AccessLevel Value="Public" />
+</Publish>

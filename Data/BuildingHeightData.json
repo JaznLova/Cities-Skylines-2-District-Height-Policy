@@ -1,0 +1,8 @@
+{
+  "Small":      { "min": -1.0,  "max": 24.0  },
+  "Medium":     { "min": 24.0,  "max": 32.0  },
+  "Large":      { "min": 32.0,  "max": 52.0  },
+  "Tall":       { "min": 52.0,  "max": 68.0  },
+  "SuperTall":  { "min": 68.0,  "max": 115.0 },
+  "Skyscraper": { "min": 115.0, "max": 9999.0 }
+}

@@ -1,0 +1,10 @@
+# Build outputs & caches
+bin/
+obj/
+.vs/
+.idea/
+*.user
+
+# Local mod build outputs
+*.dll
+*.pdb
