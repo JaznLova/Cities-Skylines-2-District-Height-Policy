@@ -44,7 +44,7 @@
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="https://forum.paradoxplaza.com/forum/threads/district-height-policy-support-and-feedback.1935959/" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.0.1" />
+	<ModVersion Value="1.0.2" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.6.*" />
 	<!--Dependency for the mod, can be set multiple times-->
