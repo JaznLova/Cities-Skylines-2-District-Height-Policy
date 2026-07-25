@@ -3,6 +3,17 @@ using Unity.Entities;
 
 namespace DistrictMod.Components
 {
+    // What the mod does with a lot once MaxRerolls rerolls have failed to produce a building
+    // the district's policy accepts.
+    public enum FallbackMode
+    {
+        // Strip the zoning off the lot's cells so nothing respawns there.
+        DezonePlot,
+        // Original behavior: give up and keep whatever building last spawned.
+        KeepBuilding,
+    }
+
+
     // Per-session bookkeeping for the reroll loop in DistrictHeightPolicySystem. Static rather
     // than system state because Setting.PushToRuntime() and the serialization system both need
     // to poke it from outside the ECS world.
@@ -21,6 +32,10 @@ namespace DistrictMod.Components
         // Rerolls allowed before a lot is given up on and its spawned building kept as-is.
         // Exposed via Setting.MaxRerolls (1-25); defaults to the original hardcoded value.
         public static int MaxRerolls { get; set; } = 10;
+
+        // What happens to a lot that has burned through its rerolls.
+        // Exposed via Setting.Fallback; defaults to dezoning the plot.
+        public static FallbackMode Fallback { get; set; } = FallbackMode.DezonePlot;
 
         // Called when a district policy changes so lots are re-evaluated rather than
         // staying frozen as "unsatisfiable".

@@ -6,6 +6,7 @@ using Game.Prefabs;
 using Game.Tools;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Mathematics;
 using DistrictMod.Components;
 using DistrictMod.Data;
 using DistrictHeightPolicy;
@@ -135,8 +136,11 @@ namespace DistrictMod.Systems
                 }
                 else if (hasTransform && LotPolicyState.UnsatisfiableLots.Contains(posKey))
                 {
-                    // This lot's density can't produce a valid asset — keep whatever spawns.
-                    LotPolicyState.ApprovedEntities.Add(entity);
+                    // This lot's density can't produce a valid asset. Under KeepBuilding that
+                    // means accepting whatever spawns; under DezonePlot the lot should already
+                    // be unzoned, so a building reappearing here gets the same treatment again
+                    // rather than being grandfathered in.
+                    ApplyFallback(entity, ecb, buildingHeight, districtEntity);
                 }
                 else
                 {
@@ -147,11 +151,12 @@ namespace DistrictMod.Systems
 
                     if (hasTransform && count > LotPolicyState.MaxRerolls)
                     {
-                        // Given up: no valid asset exists for this lot's density. Keep the building.
+                        // Given up: no valid asset exists for this lot's density. What happens
+                        // next is the user's Fallback System setting.
                         LotPolicyState.UnsatisfiableLots.Add(posKey);
-                        LotPolicyState.ApprovedEntities.Add(entity);
                         Mod.log.Debug(
-                            $"[DistrictHeightPolicySystem] Lot at {posKey} unsatisfiable for policy — keeping {buildingHeight:F1}m building in district {districtEntity.Index}");
+                            $"[DistrictHeightPolicySystem] Lot at {posKey} unsatisfiable for policy in district {districtEntity.Index}");
+                        ApplyFallback(entity, ecb, buildingHeight, districtEntity);
                     }
                     else
                     {
@@ -178,6 +183,107 @@ namespace DistrictMod.Systems
             entities.Dispose();
             districts.Dispose();
             prefabs.Dispose();
+        }
+
+        // Applied to a building sitting on a lot the policy has given up on.
+        private void ApplyFallback(Entity entity, EntityCommandBuffer ecb, float buildingHeight, Entity districtEntity)
+        {
+            if (LotPolicyState.Fallback == FallbackMode.KeepBuilding)
+            {
+                LotPolicyState.ApprovedEntities.Add(entity);
+                Mod.log.Debug(
+                    $"[DistrictHeightPolicySystem] Keeping {buildingHeight:F1}m building {entity.Index} in district {districtEntity.Index}");
+                return;
+            }
+
+            // DezonePlot: strip the zoning first, then delete the building. Without the dezone
+            // the spawner would just drop another non-conforming building on the same lot.
+            // Note the ghost-building rule below still applies — Updated goes on the zone block
+            // entities (a different entity), never on the building being Deleted.
+            if (!DezoneLot(entity, ecb))
+            {
+                // Couldn't find the lot's cells (no road edge, no lot data). Falling back to
+                // keeping the building is better than deleting it forever in a respawn loop.
+                LotPolicyState.ApprovedEntities.Add(entity);
+                Mod.log.Debug(
+                    $"[DistrictHeightPolicySystem] Could not dezone lot for building {entity.Index} — keeping it instead");
+                return;
+            }
+
+            ecb.AddComponent<Deleted>(entity);
+            Mod.log.Debug(
+                $"[DistrictHeightPolicySystem] Dezoned lot and removed {buildingHeight:F1}m building {entity.Index} in district {districtEntity.Index}");
+        }
+
+        // Clears the zone type off every cell the building's lot covers, so nothing respawns
+        // there. Returns false if the lot's cells couldn't be located.
+        //
+        // Cells live in DynamicBuffer<Game.Zones.Cell> on the zone Block entities owned by the
+        // building's road edge; Block.m_Size gives the grid and ZoneUtils.GetCellPosition turns
+        // a cell index into a world position. The building's footprint is the same quad the game
+        // uses, BuildingUtils.CalculateCorners(transform, lotSize).
+        private bool DezoneLot(Entity building, EntityCommandBuffer ecb)
+        {
+            var em = EntityManager;
+
+            if (!em.HasComponent<Game.Objects.Transform>(building)) return false;
+            if (!em.HasComponent<Building>(building)) return false;
+            if (!em.HasComponent<PrefabRef>(building)) return false;
+
+            var prefabEntity = em.GetComponentData<PrefabRef>(building).m_Prefab;
+            if (!em.HasComponent<BuildingData>(prefabEntity)) return false;
+            var lotSize = em.GetComponentData<BuildingData>(prefabEntity).m_LotSize;
+
+            var transform = em.GetComponentData<Game.Objects.Transform>(building);
+            var lotQuad = BuildingUtils.CalculateCorners(transform, lotSize).xz;
+
+            var roadEdge = em.GetComponentData<Building>(building).m_RoadEdge;
+            if (roadEdge == Entity.Null) return false;
+            if (!em.HasBuffer<Game.Zones.SubBlock>(roadEdge)) return false;
+
+            bool changedAny = false;
+            var subBlocks = em.GetBuffer<Game.Zones.SubBlock>(roadEdge);
+
+            for (int b = 0; b < subBlocks.Length; b++)
+            {
+                var blockEntity = subBlocks[b].m_SubBlock;
+                if (!em.HasComponent<Game.Zones.Block>(blockEntity)) continue;
+                if (!em.HasBuffer<Game.Zones.Cell>(blockEntity)) continue;
+
+                var block = em.GetComponentData<Game.Zones.Block>(blockEntity);
+                var cells = em.GetBuffer<Game.Zones.Cell>(blockEntity);
+
+                bool blockChanged = false;
+                for (int z = 0; z < block.m_Size.y; z++)
+                {
+                    for (int x = 0; x < block.m_Size.x; x++)
+                    {
+                        int index = z * block.m_Size.x + x;
+                        if (index >= cells.Length) continue;
+
+                        var cell = cells[index];
+                        if (cell.m_Zone.Equals(Game.Zones.ZoneType.None)) continue;
+
+                        var cellPos = Game.Zones.ZoneUtils.GetCellPosition(block, new int2(x, z));
+                        if (!Colossal.Mathematics.MathUtils.Intersect(lotQuad, cellPos.xz)) continue;
+
+                        cell.m_Zone = Game.Zones.ZoneType.None;
+                        cell.m_State &= ~(Game.Zones.CellFlags.Occupied | Game.Zones.CellFlags.Shared);
+                        cells[index] = cell;
+                        blockChanged = true;
+                    }
+                }
+
+                if (blockChanged)
+                {
+                    // The block itself is safe to mark Updated — it is not the entity being
+                    // Deleted, and the zone overlay/render needs the rebuild to show the change.
+                    ecb.AddComponent<Updated>(blockEntity);
+                    changedAny = true;
+                }
+            }
+
+            return changedAny;
         }
     }
 }

@@ -8,7 +8,9 @@ Instead of having all residential buildings spawn at uniform heights across your
 
 - If the building height is within the limit, it spawns normally.
 - If it's too tall or short, it's rejected so another prefab can be tried instead.
-- After 10 reroll attempts, if no building fits, the mod gracefully falls back to standard zoning for that lot.
+- After 10 reroll attempts (configurable), if no building fits, the mod applies your chosen **Fallback System** for that lot:
+  - **Dezone Plot** (default) — the zoning is removed from the lot, so it stays empty rather than holding a building that breaks your policy.
+  - **Keep Building** — the mod gives up and keeps whatever building last spawned.
 
 This gives you fine-grained control without requiring extra dependencies—everything is configurable through the in-game Settings menu.
 

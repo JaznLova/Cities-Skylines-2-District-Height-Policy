@@ -21,7 +21,7 @@
 
 		<b>Height Checking</b>: When a building spawns, the mod calculates its height against the policy set for that district. If it fits within the limit, it spawns; if it’s too tall or short, it is removed so another prefab can take its place.
 
-		<b>Smart Fallback System</b>: If no building fits the zone type or plot size for a strict policy, the mod will fall back to regular zoning after 10 rerolls. (For example, since no High Density Residential building exists for the "Small" policy, it gracefully reverts to standard spawning).
+		<b>Smart Fallback System</b>: If no building fits the zone type or plot size for a strict policy, the mod gives up on that lot after 10 rerolls (configurable) and applies the Fallback System you picked in the Settings menu. <b>Dezone Plot</b> (the default) removes the zoning from the lot so it stays empty instead of holding a building that breaks your policy. <b>Keep Building</b> is the old behaviour: whatever last spawned is kept. (For example, no High Density Residential building exists for the "Small" policy, so those plots get dezoned rather than filled with a tower.)
 
 		<h2>
 			<b>Tips for Best Results</b>
@@ -44,7 +44,7 @@
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="https://forum.paradoxplaza.com/forum/threads/district-height-policy-support-and-feedback.1935959/" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.0.3" />
+	<ModVersion Value="1.0.4" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.6.*" />
 	<!--Dependency for the mod, can be set multiple times-->
@@ -52,7 +52,7 @@
 	<!--Required DLC, can be set multiple times. Supported values are "Landmark Buildings", "San Fransisco Set", "Beach Properties", "Urban Promenades", "Modern Architecture"-->
 	<RequiredDLC Value="" />
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
-	<ChangeLog Value="Fixed ghost buildings that appeared after changing a district's policy: non-conforming buildings could leave a leftover render image that showed a delete overlay on hover but never actually went away until the save was reloaded. Building removal now lets the game's own cleanup handle the render teardown, so rerolled lots update cleanly." />
+	<ChangeLog Value="Added a Fallback System option in the Settings menu, by popular request. When a lot runs out of rerolls without producing a building that fits your district's policy, you can now choose what happens: Dezone Plot (the new default) removes the zoning from that lot so it stays empty, or Keep Building preserves the old behaviour of keeping whatever spawned." />
 	<!--<ChangeLog>
 	</ChangeLog>-->
 	<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->

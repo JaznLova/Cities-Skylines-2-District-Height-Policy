@@ -10,14 +10,15 @@ using DistrictMod.Data;
 namespace DistrictHeightPolicy
 {
     [FileLocation(nameof(DistrictHeightPolicy))]
-    [SettingsUIGroupOrder(kHeightRangeGroup, kBehaviorGroup)]
-    [SettingsUIShowGroupName(kHeightRangeGroup, kBehaviorGroup)]
+    [SettingsUIGroupOrder(kHeightRangeGroup, kBehaviorGroup, kFallbackGroup)]
+    [SettingsUIShowGroupName(kHeightRangeGroup, kBehaviorGroup, kFallbackGroup)]
     public class Setting : ModSetting
     {
         public const string kSection = "Main";
 
         public const string kHeightRangeGroup = "HeightRanges";
         public const string kBehaviorGroup = "Behavior";
+        public const string kFallbackGroup = "Fallback";
 
         public Setting(IMod mod) : base(mod)
         {
@@ -39,6 +40,7 @@ namespace DistrictHeightPolicy
         private float m_SuperTallMin = 68f, m_SuperTallMax = 115f;
         private float m_SkyscraperMin = 115f, m_SkyscraperMax = 9999f;
         private int m_MaxRerolls = 10;
+        private FallbackMode m_Fallback = FallbackMode.DezonePlot;
 
         [SettingsUISlider(min = 0f, max = 300f, step = 2f, scalarMultiplier = 1, unit = Unit.kFloatSingleFraction)]
         [SettingsUISection(kSection, kHeightRangeGroup)]
@@ -96,6 +98,22 @@ namespace DistrictHeightPolicy
         [SettingsUISection(kSection, kBehaviorGroup)]
         public int MaxRerolls { get => m_MaxRerolls; set { m_MaxRerolls = value; PushToRuntime(); } }
 
+        // --- Fallback system: what happens once a lot has burned through its rerolls ---
+        // An enum-typed setting renders as a dropdown on its own; the entries come from the
+        // GetEnumValueLocaleID(...) keys in LocaleEN below.
+
+        [SettingsUISection(kSection, kFallbackGroup)]
+        public FallbackMode Fallback { get => m_Fallback; set { m_Fallback = value; PushToRuntime(); } }
+
+        // Display-only line under the dropdown. It carries no value of its own — the text is
+        // the locale entry for this property's label — and only shows in Dezone Plot mode.
+        [SettingsUIMultilineText]
+        [SettingsUISection(kSection, kFallbackGroup)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsNotDezoneMode))]
+        public string DezoneNote => string.Empty;
+
+        public bool IsNotDezoneMode() => m_Fallback != FallbackMode.DezonePlot;
+
         [SettingsUIButton]
         [SettingsUIConfirmation]
         [SettingsUISection(kSection, kBehaviorGroup)]
@@ -112,6 +130,7 @@ namespace DistrictHeightPolicy
                 if (defaults.TryGetValue(HeightTier.SuperTall, out var superTall)) { m_SuperTallMin = superTall.Min; m_SuperTallMax = superTall.Max; }
                 if (defaults.TryGetValue(HeightTier.Skyscraper, out var skyscraper)) { m_SkyscraperMin = skyscraper.Min; m_SkyscraperMax = skyscraper.Max; }
                 m_MaxRerolls = 10;
+                m_Fallback = FallbackMode.DezonePlot;
                 PushToRuntime();
             }
         }
@@ -127,6 +146,7 @@ namespace DistrictHeightPolicy
             BuildingHeightLoader.SetRange(HeightTier.SuperTall, m_SuperTallMin, m_SuperTallMax);
             BuildingHeightLoader.SetRange(HeightTier.Skyscraper, m_SkyscraperMin, m_SkyscraperMax);
             LotPolicyState.MaxRerolls = m_MaxRerolls;
+            LotPolicyState.Fallback = m_Fallback;
             LotPolicyState.ResetLotState();
         }
 
@@ -139,6 +159,7 @@ namespace DistrictHeightPolicy
             m_SuperTallMin = 68f; m_SuperTallMax = 115f;
             m_SkyscraperMin = 115f; m_SkyscraperMax = 9999f;
             m_MaxRerolls = 10;
+            m_Fallback = FallbackMode.DezonePlot;
         }
     }
 
@@ -158,6 +179,7 @@ namespace DistrictHeightPolicy
 
                 { m_Setting.GetOptionGroupLocaleID(Setting.kHeightRangeGroup), "Height Ranges" },
                 { m_Setting.GetOptionGroupLocaleID(Setting.kBehaviorGroup), "Behavior" },
+                { m_Setting.GetOptionGroupLocaleID(Setting.kFallbackGroup), "Fallback System" },
 
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.SmallMin)), "Small: min height (m)" },
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.SmallMax)), "Small: max height (m)" },
@@ -175,9 +197,16 @@ namespace DistrictHeightPolicy
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.MaxRerolls)), "Max rerolls before auto-pick" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.MaxRerolls)), "Number of times a lot's spawn is rejected and rerolled before the mod gives up and keeps whatever building spawned" },
 
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.Fallback)), "Fallback system" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.Fallback)), "What happens to a lot once it has used up its rerolls and still cannot produce a building the district's policy allows" },
+                { m_Setting.GetEnumValueLocaleID(FallbackMode.DezonePlot), "Dezone Plot" },
+                { m_Setting.GetEnumValueLocaleID(FallbackMode.KeepBuilding), "Keep Building" },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.DezoneNote)), "Zone will be removed if no building exists for select policy or plot." },
+
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.ResetToDefaults)), "Reset to defaults" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.ResetToDefaults)), "Restore the height ranges and max reroll count to their original values" },
-                { m_Setting.GetOptionWarningLocaleID(nameof(Setting.ResetToDefaults)), "This will overwrite your custom height ranges and reroll count. Continue?" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.ResetToDefaults)), "Restore the height ranges, max reroll count and fallback system to their original values" },
+                { m_Setting.GetOptionWarningLocaleID(nameof(Setting.ResetToDefaults)), "This will overwrite your custom height ranges, reroll count and fallback system. Continue?" },
             };
         }
 
