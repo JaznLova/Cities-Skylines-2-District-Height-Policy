@@ -7,33 +7,37 @@
 	<ShortDescription Value="Take control of your city's horizon. Set custom district height limits to create smooth, natural transitions from suburbs to downtown. Fully configurable with no extra mod dependencies." />
 	<!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
 	<!--LongDescription Value="This is a long description" /-->
-	<LongDescription>
-		<h2><b>District Height Policy</b></h2>
-		Create the perfect skyline for your city! Control building heights by district and craft smooth, natural transitions from suburbs to downtown. Everything configures through the in-game Settings menu—no dependencies required.
+	<LongDescription>## District Height Policy
 
-		<h2><b>What’s New in 2.0</b></h2>
-		• <b>Fallback System Control</b>: Choose between Dezone Plot (keep your skyline clean) or Keep Building (accept whatever spawns)
-		• <b>High Commercial &amp; Office Support</b>: These zones now respect district height policies
-		• <b>Improved UI Guidance</b>: Zone type icons and helpful tips in the Settings panel
+Create the perfect skyline for your city! Control building heights by district and craft smooth, natural transitions from suburbs to downtown. Everything configures through the in-game Settings menu—no dependencies required.
 
-		<h2><b>How It Works</b></h2>
-		<b>Height Enforcement</b>: When a building spawns, the mod checks if its height matches your district’s policy. Buildings that fit stay; those that don’t are rerolled.
+## What’s New in 2.0
 
-		<b>Smart Fallback System</b>: After 10 rerolls (configurable), if no building fits, the mod applies your chosen fallback:
-		• <b>Dezone Plot</b> (default) — removes zoning so the lot stays empty, preserving your aesthetic
-		• <b>Keep Building</b> — keeps whatever last spawned
+• **Fallback System Control** — Choose between Dezone Plot (keep your skyline clean) or Keep Building (accept whatever spawns)
+• **High Commercial &amp; Office Support** — These zones now respect district height policies
+• **Improved UI Guidance** — Zone type icons and helpful tips in the Settings panel
 
-		<h2><b>Tips for Best Results</b></h2>
-		<b>Maintain Asset Diversity</b>: Strict policies limit building variety. Use at least two height tiers per district or mix zone types for natural-looking neighborhoods.
+## How It Works
 
-		<b>Optimize Lot Sizes</b>: Manually deleting buildings can trigger better plot size generation, improving height policy compatibility.
+**Height Enforcement** — When a building spawns, the mod checks if its height matches your district’s policy. Buildings that fit stay; those that don’t are rerolled.
 
-		<h2><b>Which Zones Are Affected</b></h2>
-		✓ <b>Residential</b> — all densities
-		✓ <b>Commercial (High Density)</b>
-		✓ <b>Office (High Density)</b>
+**Smart Fallback System** — After 10 rerolls (configurable), if no building fits, the mod applies your chosen fallback:
+• **Dezone Plot** (default) — removes zoning so the lot stays empty, preserving your aesthetic
+• **Keep Building** — keeps whatever last spawned
 
-		✗ <b>Low Density Commercial &amp; Office</b> — assets under 10m; policies typically reject them, so they’re left unchanged to prevent constant dezoning.
+## Tips for Best Results
+
+**Maintain Asset Diversity** — Strict policies limit building variety. Use at least two height tiers per district or mix zone types for natural-looking neighborhoods.
+
+**Optimize Lot Sizes** — Manually deleting buildings can trigger better plot size generation, improving height policy compatibility.
+
+## Which Zones Are Affected
+
+✓ **Residential** — all densities
+✓ **Commercial (High Density)**
+✓ **Office (High Density)**
+
+✗ **Low Density Commercial &amp; Office** — assets under 10m; policies typically reject them, so they’re left unchanged to prevent constant dezoning.
 	</LongDescription>
 	<!--Thumbnail-->
 	<Thumbnail Value="Properties/ThumbnailSquare.jpeg" />
@@ -54,13 +58,13 @@
 	<RequiredDLC Value="" />
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 	<ChangeLog>
-		<b>Fallback System Option</b>: Choose how the mod handles lots that run out of rerolls without a fitting building:
-		• <b>Dezone Plot</b> (default) — removes zoning so the lot stays empty, preserving your aesthetic
-		• <b>Keep Building</b> — the original behavior of keeping whatever last spawned
+**Fallback System Option** — Choose how the mod handles lots that run out of rerolls without a fitting building:
+• **Dezone Plot** (default) — removes zoning so the lot stays empty, preserving your aesthetic
+• **Keep Building** — the original behavior of keeping whatever last spawned
 
-		<b>Expanded Zone Coverage</b>: High density Commercial and high density Office now respect district height policies, alongside all Residential densities. Low density Commercial and Office are excluded (assets under 10m would violate policies and get dezoned anyway).
+**Expanded Zone Coverage** — High density Commercial and high density Office now respect district height policies, alongside all Residential densities. Low density Commercial and Office are excluded (assets under 10m would violate policies and get dezoned anyway).
 
-		<b>UI Improvements</b>: Helpful guidance text and zone type icons in the Settings panel to suggest best-suited policies for each zone type.
+**UI Improvements** — Helpful guidance text and zone type icons in the Settings panel to suggest best-suited policies for each zone type.
 	</ChangeLog>
 	<!--<ChangeLog>
 	</ChangeLog>-->
