@@ -69,6 +69,14 @@ namespace DistrictHeightPolicy
             updateSystem.UpdateAt<DistrictPolicyUISystem>(SystemUpdatePhase.UIUpdate);
             log.Info("DistrictPolicyUISystem registered.");
 
+            // Platter soft dependency: adds a Height Restriction section to Platter's tool
+            // panel. Registered unconditionally — the script no-ops until a Platter panel is on
+            // screen, so it costs nothing when Platter is not installed, and the
+            // EnablePlatterIntegration setting is checked per tick rather than here so it can
+            // be switched off mid-session.
+            updateSystem.UpdateAt<PlatterHeightUISystem>(SystemUpdatePhase.UIUpdate);
+            log.Info("PlatterHeightUISystem registered.");
+
             updateSystem.UpdateAt<DistrictPolicySerializationSystem>(SystemUpdatePhase.Serialize);
             log.Info("DistrictPolicySerializationSystem registered.");
 

@@ -24,8 +24,8 @@ namespace DistrictMod.UI
         private int _viewAttempts;
         private const int kMaxViewAttempts = 300;
 
-        private static readonly HeightTier[] kAllTiers =
-            { HeightTier.Small, HeightTier.Medium, HeightTier.Large, HeightTier.Tall, HeightTier.SuperTall, HeightTier.Skyscraper };
+        // Canonical order lives in BuildingHeightLoader — see AllTiers there.
+        internal static HeightTier[] kAllTiers => BuildingHeightLoader.AllTiers;
 
         protected override void OnCreate()
         {
@@ -44,7 +44,7 @@ namespace DistrictMod.UI
 
         // Ranges only change via the settings menu, not every frame, but re-serializing a
         // handful of floats per frame is cheap and keeps the panel trivially always-correct.
-        private static string SerializeTierRanges()
+        internal static string SerializeTierRanges()
         {
             var parts = new System.Collections.Generic.List<string>(kAllTiers.Length);
             foreach (var tier in kAllTiers)

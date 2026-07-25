@@ -4,14 +4,15 @@ using Game.Modding;
 using Game.Settings;
 using Game.UI;
 using System.Collections.Generic;
+using System.Linq;
 using DistrictMod.Components;
 using DistrictMod.Data;
 
 namespace DistrictHeightPolicy
 {
     [FileLocation(nameof(DistrictHeightPolicy))]
-    [SettingsUIGroupOrder(kHeightRangeGroup, kBehaviorGroup, kFallbackGroup)]
-    [SettingsUIShowGroupName(kHeightRangeGroup, kBehaviorGroup, kFallbackGroup)]
+    [SettingsUIGroupOrder(kHeightRangeGroup, kBehaviorGroup, kFallbackGroup, kPlatterGroup)]
+    [SettingsUIShowGroupName(kHeightRangeGroup, kBehaviorGroup, kFallbackGroup, kPlatterGroup)]
     public class Setting : ModSetting
     {
         public const string kSection = "Main";
@@ -19,6 +20,7 @@ namespace DistrictHeightPolicy
         public const string kHeightRangeGroup = "HeightRanges";
         public const string kBehaviorGroup = "Behavior";
         public const string kFallbackGroup = "Fallback";
+        public const string kPlatterGroup = "Platter";
 
         public Setting(IMod mod) : base(mod)
         {
@@ -41,6 +43,7 @@ namespace DistrictHeightPolicy
         private float m_SkyscraperMin = 115f, m_SkyscraperMax = 9999f;
         private int m_MaxRerolls = 10;
         private FallbackMode m_Fallback = FallbackMode.DezonePlot;
+        private bool m_EnablePlatterIntegration = true;
 
         [SettingsUISlider(min = 0f, max = 300f, step = 2f, scalarMultiplier = 1, unit = Unit.kFloatSingleFraction)]
         [SettingsUISection(kSection, kHeightRangeGroup)]
@@ -114,6 +117,52 @@ namespace DistrictHeightPolicy
 
         public bool IsNotDezoneMode() => m_Fallback != FallbackMode.DezonePlot;
 
+        // --- Platter soft dependency ---
+        // Off switch for the whole integration. Platter is not required for this mod, and its
+        // panel is not ours: if a Platter update moves the section this hooks onto, turning
+        // this off removes our UI from Platter entirely and leaves district enforcement alone.
+
+        [SettingsUISection(kSection, kPlatterGroup)]
+        public bool EnablePlatterIntegration
+        {
+            get => m_EnablePlatterIntegration;
+            set { m_EnablePlatterIntegration = value; PushToRuntime(); }
+        }
+
+        // Replaces the hardcoded boundaries with ones derived from the heights that actually exist
+        // in the installed asset set — see BuildingHeightScan.TryCalibrate for how the cuts are
+        // chosen. This cannot be the plain default: prefabs do not exist yet when Mod.OnLoad runs
+        // and the settings file is read, so there is nothing to measure until a city is loaded.
+        // Hence a button, which also keeps the JSON values available as "reset to defaults".
+        [SettingsUIButton]
+        [SettingsUIConfirmation]
+        [SettingsUISection(kSection, kHeightRangeGroup)]
+        public bool CalibrateRanges
+        {
+            set
+            {
+                var scan = BuildingHeightScan.Instance;
+                if (scan == null || !scan.TryCalibrate(BuildingHeightLoader.AllTiers, out var ranges))
+                {
+                    Mod.log.Warn("Calibration needs a loaded city to read building heights from — " +
+                                 "load a save and try again. Ranges left unchanged.");
+                    return;
+                }
+
+                if (ranges.TryGetValue(HeightTier.Small, out var small)) { m_SmallMin = small.Min; m_SmallMax = small.Max; }
+                if (ranges.TryGetValue(HeightTier.Medium, out var medium)) { m_MediumMin = medium.Min; m_MediumMax = medium.Max; }
+                if (ranges.TryGetValue(HeightTier.Large, out var large)) { m_LargeMin = large.Min; m_LargeMax = large.Max; }
+                if (ranges.TryGetValue(HeightTier.Tall, out var tall)) { m_TallMin = tall.Min; m_TallMax = tall.Max; }
+                if (ranges.TryGetValue(HeightTier.SuperTall, out var superTall)) { m_SuperTallMin = superTall.Min; m_SuperTallMax = superTall.Max; }
+                if (ranges.TryGetValue(HeightTier.Skyscraper, out var skyscraper)) { m_SkyscraperMin = skyscraper.Min; m_SkyscraperMax = skyscraper.Max; }
+
+                Mod.log.Info($"Calibrated height ranges from {scan.PrefabCount} building prefabs: " +
+                             string.Join(", ", BuildingHeightLoader.AllTiers
+                                 .Select(t => $"{t} {ranges[t].Min}-{ranges[t].Max}")));
+                PushToRuntime();
+            }
+        }
+
         [SettingsUIButton]
         [SettingsUIConfirmation]
         [SettingsUISection(kSection, kBehaviorGroup)]
@@ -147,6 +196,7 @@ namespace DistrictHeightPolicy
             BuildingHeightLoader.SetRange(HeightTier.Skyscraper, m_SkyscraperMin, m_SkyscraperMax);
             LotPolicyState.MaxRerolls = m_MaxRerolls;
             LotPolicyState.Fallback = m_Fallback;
+            LotPolicyState.PlatterIntegration = m_EnablePlatterIntegration;
             LotPolicyState.ResetLotState();
         }
 
@@ -160,6 +210,7 @@ namespace DistrictHeightPolicy
             m_SkyscraperMin = 115f; m_SkyscraperMax = 9999f;
             m_MaxRerolls = 10;
             m_Fallback = FallbackMode.DezonePlot;
+            m_EnablePlatterIntegration = true;
         }
     }
 
@@ -180,6 +231,7 @@ namespace DistrictHeightPolicy
                 { m_Setting.GetOptionGroupLocaleID(Setting.kHeightRangeGroup), "Height Ranges" },
                 { m_Setting.GetOptionGroupLocaleID(Setting.kBehaviorGroup), "Behavior" },
                 { m_Setting.GetOptionGroupLocaleID(Setting.kFallbackGroup), "Fallback System" },
+                { m_Setting.GetOptionGroupLocaleID(Setting.kPlatterGroup), "Platter Integration" },
 
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.SmallMin)), "Small: min height (m)" },
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.SmallMax)), "Small: max height (m)" },
@@ -203,6 +255,13 @@ namespace DistrictHeightPolicy
                 { m_Setting.GetEnumValueLocaleID(FallbackMode.KeepBuilding), "Keep Building" },
 
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.DezoneNote)), "Zone will be removed if no building exists for select policy or plot." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.EnablePlatterIntegration)), "Enable Platter integration" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.EnablePlatterIntegration)), "Adds a Height Restriction section to Platter's tool panel so a parcel can carry its own height policy. Turn this off if a Platter update breaks the section — district height policies are unaffected either way." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.CalibrateRanges)), "Calibrate from installed assets" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.CalibrateRanges)), "Recalculates the six height ranges from the actual heights of the growable buildings you have installed, placing each boundary in a gap where no building sits. Requires a loaded city." },
+                { m_Setting.GetOptionWarningLocaleID(nameof(Setting.CalibrateRanges)), "This will overwrite your current height ranges with values measured from your installed assets. Continue?" },
 
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.ResetToDefaults)), "Reset to defaults" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.ResetToDefaults)), "Restore the height ranges, max reroll count and fallback system to their original values" },

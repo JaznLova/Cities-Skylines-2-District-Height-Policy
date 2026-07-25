@@ -40,7 +40,7 @@ Create the perfect skyline for your city! Control building heights by district a
 ✗ **Low Density Commercial &amp; Office** — assets under 10m; policies typically reject them, so they’re left unchanged to prevent constant dezoning.
 	</LongDescription>
 	<!--Thumbnail-->
-	<Thumbnail Value="Properties/ThumbnailSquare.jpeg" />
+	<Thumbnail Value="Properties/ThumbnailSquare.png" />
 	<!--Screenshot, can be set multiple times-->
 	<Screenshot Value="Properties/Thumbnail.png" />
 	<Screenshot Value="Properties/Demonstration.png" />

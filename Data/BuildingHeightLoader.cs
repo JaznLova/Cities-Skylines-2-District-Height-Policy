@@ -13,6 +13,15 @@ namespace DistrictMod.Data
 
     public static class BuildingHeightLoader
     {
+        // The canonical tier order, ascending. Both panels render it, and BuildingHeightScan
+        // calibrates against it — a second copy that disagreed about the order would silently
+        // assign the wrong height band to every tier.
+        public static readonly HeightTier[] AllTiers =
+        {
+            HeightTier.Small, HeightTier.Medium, HeightTier.Large,
+            HeightTier.Tall, HeightTier.SuperTall, HeightTier.Skyscraper,
+        };
+
         public static Dictionary<HeightTier, HeightRange> TierRanges { get; private set; }
             = new Dictionary<HeightTier, HeightRange>();
 

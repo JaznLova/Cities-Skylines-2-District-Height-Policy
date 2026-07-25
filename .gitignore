@@ -12,3 +12,7 @@ Library/
 # Local mod build outputs
 *.dll
 *.pdb
+
+# Reference screenshots dropped in the repo root while iterating on the UI
+Platter.png
+Screenshot*.png

@@ -43,6 +43,16 @@ namespace DistrictMod.Components
         // Exposed via Setting.Fallback; defaults to dezoning the plot.
         public static FallbackMode Fallback { get; set; } = FallbackMode.DezonePlot;
 
+        // Platter soft dependency. Exposed via Setting.EnablePlatterIntegration so a Platter
+        // update that breaks the integration can be switched off without uninstalling this mod,
+        // leaving the district-based enforcement untouched.
+        public static bool PlatterIntegration { get; set; } = true;
+
+        // Tiers ticked in the Height Restriction section of Platter's tool panel — the policy a
+        // parcel will be stamped with when it is placed. UI selection state only; enforcement
+        // does not read it yet.
+        public static readonly HashSet<Data.HeightTier> PlatterPendingTiers = new();
+
         // Called when a district policy changes so lots are re-evaluated rather than
         // staying frozen as "unsatisfiable".
         public static void ResetLotState()
