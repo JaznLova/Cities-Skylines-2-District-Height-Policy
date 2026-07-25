@@ -2,6 +2,7 @@ using System.IO;
 using System.Reflection;
 using Colossal.IO.AssetDatabase;
 using Colossal.Logging;
+using Colossal.UI;
 using Game;
 using Game.Modding;
 using Game.SceneFlow;
@@ -21,6 +22,12 @@ namespace DistrictHeightPolicy
         // Directory the mod dll was loaded from — BuildingHeightData.json and
         // height-policy-panel.js sit next to it.
         public static string ModDirectory { get; private set; }
+
+        // The panel is injected into the game's cohtml view, which can't read arbitrary
+        // filesystem paths. Registering this host makes icons/*.png reachable from the
+        // injected script as coui://districtheightpolicy/<file>.
+        private const string kUIHostName = "districtheightpolicy";
+        private bool m_UIHostRegistered;
 
         private Setting m_Setting;
 
@@ -44,6 +51,7 @@ namespace DistrictHeightPolicy
             // and gives TierRanges an initial value before Setting.PushToRuntime() overwrites it
             // below with whatever was actually loaded from the settings file (or its defaults).
             LoadHeightData();
+            RegisterUIHost();
 
             m_Setting = new Setting(this);
             m_Setting.RegisterInOptionsUI();
@@ -72,6 +80,30 @@ namespace DistrictHeightPolicy
             log.Info("DistrictHeightPolicySystem registered.");
         }
 
+        // Serves the zone-type icons shown under each height tier in the district panel.
+        // Failure here is not fatal — the panel still works, the icons just render as
+        // broken images — so it must never take the rest of OnLoad down with it.
+        private void RegisterUIHost()
+        {
+            var iconsPath = Path.Combine(ModDirectory, "icons");
+            if (!Directory.Exists(iconsPath))
+            {
+                log.Warn($"Icons directory not found at {iconsPath} — zone icons will not render.");
+                return;
+            }
+
+            try
+            {
+                UIManager.defaultUISystem.AddHostLocation(kUIHostName, iconsPath);
+                m_UIHostRegistered = true;
+                log.Info($"UI host '{kUIHostName}' registered at {iconsPath}");
+            }
+            catch (System.Exception e)
+            {
+                log.Warn($"Could not register UI host '{kUIHostName}': {e.Message}");
+            }
+        }
+
         private void LoadHeightData()
         {
             var dataPath = Path.Combine(ModDirectory, "BuildingHeightData.json");
@@ -88,6 +120,13 @@ namespace DistrictHeightPolicy
         public void OnDispose()
         {
             log.Info(nameof(OnDispose));
+
+            if (m_UIHostRegistered)
+            {
+                try { UIManager.defaultUISystem.RemoveHostLocation(kUIHostName); }
+                catch (System.Exception e) { log.Warn($"Could not remove UI host: {e.Message}"); }
+                m_UIHostRegistered = false;
+            }
 
             if (m_Setting != null)
             {

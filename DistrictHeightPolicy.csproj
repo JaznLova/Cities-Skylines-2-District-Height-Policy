@@ -76,6 +76,9 @@
 		<!--Both are read at runtime from the mod folder, so they must sit next to the dll-->
 		<None Include="Data\BuildingHeightData.json" Link="BuildingHeightData.json" CopyToOutputDirectory="PreserveNewest" />
 		<None Include="height-policy-panel.js" CopyToOutputDirectory="PreserveNewest" />
+		<!--Zone icons served to the injected panel via the coui://districtheightpolicy host
+		    registered in Mod.RegisterUIHost, which points at this icons folder-->
+		<None Include="UI\icons\*.png" Link="icons\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 
 	<ItemGroup>

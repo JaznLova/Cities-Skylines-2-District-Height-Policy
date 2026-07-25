@@ -76,7 +76,7 @@ namespace DistrictMod.UI
             // so the panel is fed by pushing directly to its engine.on listener. tierRanges
             // reflects whatever the user currently has set in Options, so the panel's labels
             // are never stale/hardcoded.
-            _view?.TriggerEvent("districtMod.update", isDistrict, activeTiers, SerializeTierRanges());
+            _view?.TriggerEvent("districtMod.update", isDistrict, activeTiers, SerializeTierRanges(), LotPolicyState.Fallback.ToString());
         }
 
         private void TryInjectPanel()

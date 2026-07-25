@@ -25,6 +25,12 @@ namespace DistrictMod.Components
         internal static readonly HashSet<Entity> ApprovedEntities = new();
         internal static readonly HashSet<Entity> ActivatedDistricts = new();
 
+        // Zone prefab entity -> "is this a high density zone". Resolving it means a managed
+        // PrefabSystem name lookup, which is far too slow to redo for every building every
+        // update. Cleared with the rest of the session state because zone prefab entity ids
+        // are remapped on save load.
+        internal static readonly Dictionary<Entity, bool> HighDensityZoneCache = new();
+
         // Per-lot reroll tracking (keyed by quantized world position, stable across respawns).
         internal static readonly Dictionary<long, int> RerollCounts = new();
         internal static readonly HashSet<long> UnsatisfiableLots = new();
@@ -53,6 +59,7 @@ namespace DistrictMod.Components
         {
             ApprovedEntities.Clear();
             ActivatedDistricts.Clear();
+            HighDensityZoneCache.Clear();
             ResetLotState();
         }
     }

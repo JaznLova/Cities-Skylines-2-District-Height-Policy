@@ -13,8 +13,15 @@ using DistrictHeightPolicy;
 
 namespace DistrictMod.Systems
 {
-    // Enforces per-district height policies by marking non-conforming residential buildings
-    // Deleted, which makes the zone spawner reroll the lot.
+    // Enforces per-district height policies by marking non-conforming buildings Deleted, which
+    // makes the zone spawner reroll the lot.
+    //
+    // Covers Residential at every density, plus Commercial and Office at HIGH density only.
+    // Low density commercial/office assets top out around 10m, so any policy above the Small
+    // tier would reject every candidate the spawner offers, burn through the rerolls and then
+    // hand the lot to the fallback — which under the default Dezone Plot setting would strip
+    // the zoning off every low density shop and office in the district. Those lots are skipped
+    // outright instead. See IsHighDensityZone.
     //
     // This deliberately runs as a real GameSystemBase rather than as a Harmony postfix on
     // ZoneSpawnSystem.OnUpdate: doing the entity work inside another system's update meant
@@ -29,6 +36,7 @@ namespace DistrictMod.Systems
     public partial class DistrictHeightPolicySystem : GameSystemBase
     {
         private EndFrameBarrier m_Barrier;
+        private PrefabSystem m_PrefabSystem;
         private EntityQuery m_BuildingQuery;
 
         protected override void OnCreate()
@@ -36,15 +44,24 @@ namespace DistrictMod.Systems
             base.OnCreate();
 
             m_Barrier = World.GetOrCreateSystemManaged<EndFrameBarrier>();
+            m_PrefabSystem = World.GetOrCreateSystemManaged<PrefabSystem>();
 
             m_BuildingQuery = GetEntityQuery(new EntityQueryDesc
             {
                 All = new[]
                 {
                     ComponentType.ReadOnly<Building>(),
-                    ComponentType.ReadOnly<ResidentialProperty>(),
                     ComponentType.ReadOnly<CurrentDistrict>(),
                     ComponentType.ReadOnly<PrefabRef>(),
+                },
+                // Zoned growables only. Which of these actually get judged is decided per
+                // building by IsEligible — service buildings, parks and the like carry none
+                // of them and never enter the query at all.
+                Any = new[]
+                {
+                    ComponentType.ReadOnly<ResidentialProperty>(),
+                    ComponentType.ReadOnly<CommercialProperty>(),
+                    ComponentType.ReadOnly<OfficeProperty>(),
                 },
                 // Buildings already queued for deletion must not be re-judged — they would
                 // burn a second reroll against their lot before the barrier plays back.
@@ -118,6 +135,12 @@ namespace DistrictMod.Systems
                     continue;
                 }
 
+                if (!IsEligible(entity, prefabEntity))
+                {
+                    LotPolicyState.ApprovedEntities.Add(entity);
+                    continue;
+                }
+
                 var geom = em.GetComponentData<ObjectGeometryData>(prefabEntity);
                 float buildingHeight = geom.m_Bounds.max.y;
 
@@ -183,6 +206,60 @@ namespace DistrictMod.Systems
             entities.Dispose();
             districts.Dispose();
             prefabs.Dispose();
+        }
+
+        // Whether this building is one the height policy is allowed to act on.
+        // Residential at any density, Commercial and Office at high density only.
+        private bool IsEligible(Entity entity, Entity prefabEntity)
+        {
+            // Residential Mixed carries both ResidentialProperty and CommercialProperty. The
+            // residential check comes first so those keep being judged the way they always
+            // have been, rather than being re-routed through the density test.
+            if (EntityManager.HasComponent<ResidentialProperty>(entity)) return true;
+
+            return IsHighDensityZone(prefabEntity);
+        }
+
+        // A spawnable building points at the zone prefab it grew from, and CS2 names those
+        // "<Region> <Category> <Density>" — "EU Commercial High", "NA Commercial Low",
+        // "Office High", and the same pattern in every region pack (CN, FR, UK, JP, ...).
+        //
+        // Matching on "High" alone rather than on the region prefix is deliberate: it means
+        // every region pack, including ones that ship after this build, is covered without a
+        // code change. Anything we can't positively identify as high density is treated as
+        // not eligible — getting this wrong in that direction would dezone lots the user
+        // never wanted touched.
+        private bool IsHighDensityZone(Entity prefabEntity)
+        {
+            var em = EntityManager;
+            if (!em.HasComponent<SpawnableBuildingData>(prefabEntity)) return false;
+
+            var zonePrefab = em.GetComponentData<SpawnableBuildingData>(prefabEntity).m_ZonePrefab;
+            if (zonePrefab == Entity.Null) return false;
+
+            if (LotPolicyState.HighDensityZoneCache.TryGetValue(zonePrefab, out var cached))
+                return cached;
+
+            bool isHighDensity = false;
+            string zoneName = null;
+            try
+            {
+                zoneName = m_PrefabSystem.GetPrefabName(zonePrefab);
+                isHighDensity = zoneName != null
+                    && zoneName.IndexOf("High", System.StringComparison.OrdinalIgnoreCase) >= 0;
+            }
+            catch (System.Exception e)
+            {
+                Mod.log.Warn($"[DistrictHeightPolicySystem] Could not read zone prefab name: {e.Message}");
+            }
+
+            LotPolicyState.HighDensityZoneCache[zonePrefab] = isHighDensity;
+            // One line per zone prefab per session — this is the record of what the mod decided
+            // to enforce on, and the first thing to check if a zone behaves unexpectedly.
+            Mod.log.Info(
+                $"[DistrictHeightPolicySystem] Zone '{zoneName ?? "<unknown>"}' classified as {(isHighDensity ? "high density — policy applies" : "not high density — skipped")}");
+
+            return isHighDensity;
         }
 
         // Applied to a building sitting on a lot the policy has given up on.

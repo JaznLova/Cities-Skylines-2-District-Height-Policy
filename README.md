@@ -1,10 +1,16 @@
 # District Height Policy
 
-A Cities Skylines 2 mod that lets you set custom height limits for residential zones within each district, creating natural skyline transitions from suburbs to downtown towers.
+A Cities Skylines 2 mod that lets you set custom height limits within each district, creating natural skyline transitions from suburbs to downtown towers.
+
+## What's New in 2.0
+
+- **Fallback System Control** — Choose between _Dezone Plot_ (keep your skyline clean) or _Keep Building_ (accept whatever spawns)
+- **High Commercial & Office Support** — These zones now respect district height policies
+- **Improved UI Guidance** — Zone type icons and helpful tips in the Settings panel
 
 ## What It Does
 
-Instead of having all residential buildings spawn at uniform heights across your city, District Height Policy lets you define height preferences per district through the Settings menu. When a building would spawn in a zoned lot, the mod checks whether it fits your district's height policy:
+Instead of having buildings spawn at uniform heights across your city, District Height Policy lets you define height preferences per district through the Settings menu. When a building would spawn in a zoned lot, the mod checks whether it fits your district's height policy:
 
 - If the building height is within the limit, it spawns normally.
 - If it's too tall or short, it's rejected so another prefab can be tried instead.
@@ -32,7 +38,17 @@ Download from Paradox Mods and subscribe. The mod is self-contained; no other mo
 
 **Optimize Lot Sizes**: Manually deleting unwanted buildings can trigger improved plot size generation, which sometimes helps match your height policies more reliably.
 
-**Note**: The mod is currently designed for Residential zones only.
+## Which Zones Are Affected
+
+**Controlled by Policy:**
+- **Residential** — all densities
+- **Commercial** — high density only
+- **Office** — high density only
+
+**Not Affected:**
+- **Low Density Commercial & Office** — deliberately left alone. Those assets are all under about 10m, so any policy above the Small tier would reject every building the game offers for the lot, leaving it dezoned. Easier to skip them entirely.
+
+The mod works across every region pack (North America, Europe, China, France, UK, Japan, and more) — it identifies zone types by name, not region.
 
 ## Building from Source
 
