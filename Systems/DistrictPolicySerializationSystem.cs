@@ -25,7 +25,10 @@ namespace DistrictMod.Systems
         // This is deliberately one-way: an older build of this mod reading a new save would take
         // kMagic for a count of zero and lose every district policy. Downgrading is lossy.
         private const int kMagic = -0x44485001;
-        private const int kVersion = 1;             // 1: adds the parcel override block
+        // 1: adds the parcel override block
+        // 2: adds the parcel reroll state, so a parcel already given up on is not re-judged from
+        //    scratch on every load
+        private const int kVersion = 2;
 
         protected override void OnUpdate()
         {
@@ -62,8 +65,27 @@ namespace DistrictMod.Systems
                 writer.Write(TiersToMask(kvp.Value));
             }
 
+            // How far each overridden parcel got through its rerolls, and which parcels were given
+            // up on entirely. Session state everywhere else, but it has to survive a load here:
+            // buildings on a district-policied lot are re-approved wholesale by the grandfathering
+            // pass after a load, and parcels deliberately skip that pass — so without this a parcel
+            // that had already been settled starts its reroll loop again on every single load,
+            // deleting the building MaxRerolls times before landing back where it was.
+            var givenUp = LotPolicyState.UnsatisfiableParcels;
+            writer.Write(givenUp.Count);
+            foreach (var parcel in givenUp) writer.Write(parcel);
+
+            var rerolls = LotPolicyState.ParcelRerollCounts;
+            writer.Write(rerolls.Count);
+            foreach (var kvp in rerolls)
+            {
+                writer.Write(kvp.Key);
+                writer.Write(kvp.Value);
+            }
+
             Mod.log.Info($"[DistrictPolicySerializationSystem] Serialized {tiers.Count} district " +
-                         $"polic{(tiers.Count == 1 ? "y" : "ies")} and {overrides.Count} parcel override(s).");
+                         $"polic{(tiers.Count == 1 ? "y" : "ies")}, {overrides.Count} parcel override(s), " +
+                         $"{givenUp.Count} settled parcel(s).");
         }
 
         public void Deserialize<TReader>(TReader reader) where TReader : IReader
@@ -115,11 +137,44 @@ namespace DistrictMod.Systems
                 }
             }
 
+            // Read into locals, not straight into LotPolicyState: ClearSessionState below wipes
+            // both of these, so they have to be applied after it rather than before.
+            List<Entity> givenUp = null;
+            List<KeyValuePair<Entity, int>> rerolls = null;
+            if (version >= 2)
+            {
+                reader.Read(out int givenUpCount);
+                givenUp = new List<Entity>(givenUpCount);
+                for (int i = 0; i < givenUpCount; i++)
+                {
+                    reader.Read(out Entity parcel);
+                    if (parcel != Entity.Null) givenUp.Add(parcel);
+                }
+
+                reader.Read(out int rerollCount);
+                rerolls = new List<KeyValuePair<Entity, int>>(rerollCount);
+                for (int i = 0; i < rerollCount; i++)
+                {
+                    reader.Read(out Entity parcel);
+                    reader.Read(out int attempts);
+                    if (parcel != Entity.Null)
+                        rerolls.Add(new KeyValuePair<Entity, int>(parcel, attempts));
+                }
+            }
+
             // Clears the session state, including the parcel seen-set — but not the overrides just
             // read above, which is why they live in their own store. See ParcelOverrideStore.
             LotPolicyState.ClearSessionState();
+
+            if (givenUp != null)
+            {
+                foreach (var parcel in givenUp) LotPolicyState.UnsatisfiableParcels.Add(parcel);
+                foreach (var kvp in rerolls) LotPolicyState.ParcelRerollCounts[kvp.Key] = kvp.Value;
+            }
+
             Mod.log.Info($"[DistrictPolicySerializationSystem] Deserialized v{version}: {count} district " +
-                         $"polic{(count == 1 ? "y" : "ies")}, {parcelCount} parcel override(s).");
+                         $"polic{(count == 1 ? "y" : "ies")}, {parcelCount} parcel override(s), " +
+                         $"{givenUp?.Count ?? 0} settled parcel(s).");
         }
 
         private static int TiersToMask(HashSet<HeightTier> tiers)
