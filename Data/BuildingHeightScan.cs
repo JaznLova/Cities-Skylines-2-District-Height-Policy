@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Game.Prefabs;
-using Game.UI;
 using Unity.Collections;
 using Unity.Entities;
 using DistrictHeightPolicy;
@@ -38,24 +37,18 @@ namespace DistrictMod.Data
             public float Height;
         }
 
-        // Field/record separators for Serialize. Deliberately not ':' or ',' — the icon values
-        // are coui:// URIs and contain both.
         private const char kTierSep = ';';
         private const char kFieldSep = '~';
-        private const char kIconSep = '|';
-
-        // Icons have to stay legible, so they are large enough that only a few fit beside a label
-        // as long as "Super Tall (68-115m)" before the row would wrap.
-        private const int kMaxIcons = 4;
 
         private readonly EntityManager m_EntityManager;
-        private readonly ImageSystem m_ImageSystem;
         private readonly EntityQuery m_Query;
 
         // Records grouped by lot size, which is how the UI always asks for them (Platter has one
         // parcel size selected at a time). Key is LotKey(w, d).
         private readonly Dictionary<int, List<Rec>> m_ByLotSize = new();
-        private readonly Dictionary<ushort, string> m_ZoneIcons = new();
+
+        // Distinct zones seen, for the summary log line only.
+        private readonly HashSet<ushort> m_Zones = new();
 
         // Every (zone, width, depth) combination that has at least one building. Because the scan
         // uses Platter's own rules, this is exactly the key set of Platter's count cache, which is
@@ -74,7 +67,6 @@ namespace DistrictMod.Data
         public BuildingHeightScan(World world)
         {
             m_EntityManager = world.EntityManager;
-            m_ImageSystem = world.GetOrCreateSystemManaged<ImageSystem>();
 
             m_Query = m_EntityManager.CreateEntityQuery(new EntityQueryDesc
             {
@@ -135,10 +127,8 @@ namespace DistrictMod.Data
                         });
 
                     list.Add(new Rec { Zone = zoneIndex, Height = geometry.m_Bounds.max.y });
+                    m_Zones.Add(zoneIndex);
                     m_Total++;
-
-                    if (!m_ZoneIcons.ContainsKey(zoneIndex))
-                        m_ZoneIcons[zoneIndex] = ResolveZoneIcon(spawnable.m_ZonePrefab);
                 }
             }
             finally
@@ -148,16 +138,8 @@ namespace DistrictMod.Data
 
             m_Built = true;
             Mod.log.Info($"[BuildingHeightScan] {m_Total} level-1 growables across " +
-                         $"{m_ByLotSize.Count} lot sizes and {m_ZoneIcons.Count} zones.");
+                         $"{m_ByLotSize.Count} lot sizes and {m_Zones.Count} zones.");
             return m_Total > 0;
-        }
-
-        // The game's own zone icon, so modded zones get the right image without this mod having
-        // to ship one. Never fatal — a missing icon just means the row shows counts only.
-        private string ResolveZoneIcon(Entity zonePrefab)
-        {
-            try { return m_ImageSystem.GetIconOrGroupIcon(zonePrefab) ?? string.Empty; }
-            catch (System.Exception) { return string.Empty; }
         }
 
         // Bounds match BuildingHeightLoader.IsBuildingAllowed exactly — exclusive min, inclusive
@@ -194,40 +176,28 @@ namespace DistrictMod.Data
             return count;
         }
 
-        // "Tier~count~icon|icon;Tier~count~icon;..." — one entry per tier, in the order given.
-        //
-        // count is the number of buildings matching zoneIndex and the lot size exactly: the
-        // number that can actually grow on this parcel under this tier. The icons are the zones
-        // that could supply the tier at this lot size at all, which is what makes "0 here, but
-        // these zones do have it" readable without opening the district panel.
+        // "Tier~count;Tier~count;..." — one entry per tier, in the order given, where count is the
+        // number of buildings matching zoneIndex and the lot size exactly: the number that can
+        // actually grow on this parcel under this tier. The panel only uses it to grey a tier
+        // nothing can fill; the numbers themselves are shown in Platter's own grid.
         public string Serialize(ushort zoneIndex, int w, int d, HeightTier[] tiers)
         {
             if (!EnsureBuilt()) return string.Empty;
+
             if (!m_ByLotSize.TryGetValue(LotKey(w, d), out var recs))
                 return string.Join(kTierSep.ToString(),
-                    tiers.Select(t => t + kFieldSep.ToString() + "0" + kFieldSep));
+                    tiers.Select(t => t + kFieldSep.ToString() + "0"));
 
             var parts = new List<string>(tiers.Length);
-            var zones = new List<ushort>(kMaxIcons);
-
             foreach (var tier in tiers)
             {
                 int count = 0;
-                zones.Clear();
-
                 foreach (var rec in recs)
                 {
-                    if (!InTier(rec.Height, tier)) continue;
-                    if (rec.Zone == zoneIndex) count++;
-                    if (zones.Count < kMaxIcons && !zones.Contains(rec.Zone)) zones.Add(rec.Zone);
+                    if (rec.Zone != zoneIndex) continue;
+                    if (InTier(rec.Height, tier)) count++;
                 }
-
-                var icons = zones
-                    .Select(z => m_ZoneIcons.TryGetValue(z, out var i) ? i : string.Empty)
-                    .Where(i => !string.IsNullOrEmpty(i));
-
-                parts.Add(tier + kFieldSep.ToString() + count + kFieldSep +
-                          string.Join(kIconSep.ToString(), icons));
+                parts.Add(tier + kFieldSep.ToString() + count);
             }
 
             return string.Join(kTierSep.ToString(), parts);

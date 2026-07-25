@@ -36,10 +36,13 @@
     let lastSelectedKey = null;
     let expanded = false;
 
-    // Per tier, the zone icons that could supply it at Platter's selected parcel size, from
-    // BuildingHeightScan. The building *counts* are not rendered here — they are written into
-    // Platter's own count cache so they appear in the cells of its Parcel Size grid instead.
-    // tier -> {count, icons[]}; count is parsed but only used to grey a tier nothing can fill.
+    // tier -> {count} for Platter's selected zone and parcel size. The numbers themselves are not
+    // rendered here — they are written into Platter's own count cache so they appear in the cells
+    // of its Parcel Size grid instead. All this is used for is greying a tier nothing can fill.
+    //
+    // A zone icon per row was tried and removed: an icon next to "Medium" reads as "this zone is
+    // allowed", when what it actually meant was "this zone could supply a building of this height
+    // at this parcel size" — a much narrower claim that no icon can carry on its own.
     let countMap = {};
     let lastCountsKey = null;
 
@@ -66,17 +69,13 @@
         return map;
     }
 
-    // "Tier~count~icon|icon;Tier~count~;..." — ':' and ',' are unusable as separators here
-    // because the icon values are coui:// URIs and contain both.
+    // "Tier~count;Tier~count;..."
     function parseCounts(str) {
         const map = {};
         (str || '').split(';').filter(Boolean).forEach(function (entry) {
             const parts = entry.split('~');
             if (parts.length < 2) return;
-            map[parts[0]] = {
-                count: parseInt(parts[1], 10) || 0,
-                icons: (parts[2] || '').split('|').filter(Boolean),
-            };
+            map[parts[0]] = { count: parseInt(parts[1], 10) || 0 };
         });
         return map;
     }
@@ -91,7 +90,9 @@
         const chosen = ALL_TIERS.filter(function (t) { return selectedSet.has(t); });
         if (chosen.length === 0) return 'No restriction';
         if (chosen.length === 1) return TIER_NAMES[chosen[0]] || chosen[0];
-        if (chosen.length === ALL_TIERS.length) return 'All tiers';
+        // Every tier ticked permits every height, so it restricts nothing and no override is
+        // recorded for it. Saying "All tiers" would read like a restriction being applied.
+        if (chosen.length === ALL_TIERS.length) return 'No restriction (all tiers)';
         return chosen.length + ' tiers';
     }
 
@@ -264,19 +265,11 @@
 
             const label = document.createElement('span');
             label.textContent = tierLabel(tier);
-            // flex:1 makes the label itself claim the empty middle, so the icons end up at the
-            // right edge without depending on an auto margin resolving the way it should.
             label.style.cssText = 'pointer-events:none;flex:1 1 auto;min-width:0;' +
                 'white-space:nowrap;';
 
-            // The zones that can supply this tier at the selected parcel size, pinned right.
-            const icons = document.createElement('div');
-            icons.style.cssText = 'margin-left:10rem;display:flex;align-items:center;' +
-                'justify-content:flex-end;flex-wrap:nowrap;pointer-events:none;flex:0 0 auto;';
-
             row.appendChild(box);
             row.appendChild(label);
-            row.appendChild(icons);
 
             // Flip optimistically, then tell C#. The next tick pushes the authoritative set
             // back and corrects this if the toggle was rejected.
@@ -288,7 +281,7 @@
                 engine.trigger('districtHeightPolicyPlatter.toggleTier', tier);
             });
 
-            rows[tier] = { box: box, tick: tick, label: label, icons: icons };
+            rows[tier] = { box: box, tick: tick, label: label };
             list.appendChild(row);
         });
 
@@ -303,39 +296,15 @@
         return wrapper;
     }
 
-    // Each row gets the icons of the zones that can supply that tier at the selected parcel size,
-    // which is what tells you at a glance that a tier is only reachable by switching Pre-Zone. A
-    // tier nothing can fill at all is greyed, matching the 0 that now shows in Platter's grid.
+    // A tier no building can fill at the selected zone and parcel size is greyed — the same fact
+    // as the 0 Platter's own grid now shows for that combination. The tier stays tickable: it is a
+    // statement about the current selection, not about the restriction being invalid.
     function renderCounts() {
         if (!els) return;
 
         ALL_TIERS.forEach(function (tier) {
-            const row = els.rows[tier];
             const info = countMap[tier];
-
-            while (row.icons.firstChild) row.icons.removeChild(row.icons.firstChild);
-            row.label.style.opacity = (!info || info.count > 0) ? '1' : '0.5';
-            if (!info) return;
-
-            // An empty right-hand side reads as a rendering fault rather than as the fact it is,
-            // so a tier that no zone can supply at this parcel size says so in words.
-            if (info.icons.length === 0) {
-                const none = document.createElement('span');
-                none.textContent = 'no zone at this size';
-                none.style.cssText = 'font-size:11rem;color:#888;font-style:italic;' +
-                    'pointer-events:none;white-space:nowrap;';
-                row.icons.appendChild(none);
-                return;
-            }
-
-            // Spaced with margins rather than the container's gap, which this cohtml build drops.
-            info.icons.forEach(function (src, i) {
-                const img = document.createElement('img');
-                img.src = src;
-                img.style.cssText = 'width:26rem;height:26rem;flex-shrink:0;pointer-events:none;' +
-                    (i > 0 ? 'margin-left:8rem;' : '');
-                row.icons.appendChild(img);
-            });
+            els.rows[tier].label.style.opacity = (!info || info.count > 0) ? '1' : '0.5';
         });
     }
 

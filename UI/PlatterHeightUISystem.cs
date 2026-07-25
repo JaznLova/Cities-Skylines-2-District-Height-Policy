@@ -29,12 +29,12 @@ namespace DistrictMod.UI
         private BuildingHeightScan _scan;
         private PlatterGridOverride _gridOverride;
 
-        // The zone icons shown on each tier row only change when the pre-zone, the parcel size or
-        // a tier range changes, none of which happen per tick — so the payload is rebuilt on
-        // change and otherwise resent from here. Rescanning the prefab list six times a second
-        // would not be free.
-        private string _iconsKey = null;
-        private string _icons = "";
+        // Per-tier building counts for the current selection, used by the panel only to grey a
+        // tier nothing can fill. These change only when the pre-zone, the parcel size or a tier
+        // range changes, none of which happen per tick — so the payload is rebuilt on change and
+        // otherwise resent from here. Rescanning the prefab list six times a second is not free.
+        private string _countsKey = null;
+        private string _counts = "";
 
         // The script's anchor search walks the whole DOM, so it runs on a slow cadence instead
         // of every frame. Platter's panel appearing a quarter second late is not noticeable.
@@ -75,7 +75,7 @@ namespace DistrictMod.UI
                 && PlatterInterop.TryGetSelection(World, out var zoneIndex, out var parcelSize))
             {
                 hasSelection = true;
-                UpdateIcons(ranges, zoneIndex, parcelSize);
+                UpdateCounts(ranges, zoneIndex, parcelSize);
             }
 
             // The enabled flag is pushed rather than gating the tick, so the script gets told to
@@ -84,19 +84,19 @@ namespace DistrictMod.UI
                 LotPolicyState.PlatterIntegration,
                 ranges,
                 SerializeSelectedTiers(),
-                hasSelection ? _icons : "");
+                hasSelection ? _counts : "");
         }
 
-        // Rebuilds the per-tier zone icons only when something they depend on actually changed.
-        // The tier ranges are part of the key because they decide which tier a building falls
-        // into, so dragging a slider in Options has to invalidate this.
-        private void UpdateIcons(string ranges, ushort zoneIndex, Unity.Mathematics.int2 parcelSize)
+        // Rebuilds the per-tier counts only when something they depend on actually changed. The
+        // tier ranges are part of the key because they decide which tier a building falls into, so
+        // dragging a slider in Options has to invalidate this.
+        private void UpdateCounts(string ranges, ushort zoneIndex, Unity.Mathematics.int2 parcelSize)
         {
             string key = zoneIndex + "/" + parcelSize.x + "x" + parcelSize.y + "/" + ranges;
-            if (key == _iconsKey) return;
-            _iconsKey = key;
+            if (key == _countsKey) return;
+            _countsKey = key;
 
-            _icons = _scan.Serialize(zoneIndex, parcelSize.x, parcelSize.y, DistrictPolicyUISystem.kAllTiers);
+            _counts = _scan.Serialize(zoneIndex, parcelSize.x, parcelSize.y, DistrictPolicyUISystem.kAllTiers);
         }
 
         // Same "Tier,Tier" shape the district panel's activeTiers binding uses.

@@ -77,6 +77,13 @@ namespace DistrictHeightPolicy
             updateSystem.UpdateAt<PlatterHeightUISystem>(SystemUpdatePhase.UIUpdate);
             log.Info("PlatterHeightUISystem registered.");
 
+            // Records the panel's height restriction onto each newly placed Platter parcel.
+            // ModificationEnd rather than GameSimulation on purpose: ModificationSystem pumps it
+            // every frame including while the game is paused, which is when parcels tend to be
+            // plopped, and it runs after the tool-apply passes have finished building the entity.
+            updateSystem.UpdateAt<PlatterParcelOverrideSystem>(SystemUpdatePhase.ModificationEnd);
+            log.Info("PlatterParcelOverrideSystem registered.");
+
             updateSystem.UpdateAt<DistrictPolicySerializationSystem>(SystemUpdatePhase.Serialize);
             log.Info("DistrictPolicySerializationSystem registered.");
 

@@ -29,11 +29,17 @@ namespace DistrictMod.Systems
         private const string kUISystemType = "Platter.Systems.P_UISystem";
         private const string kCacheSystemType = "Platter.Systems.P_BuildingCacheSystem";
 
+        // Unlike the systems, these live in Platter's own namespace rather than the game's — the
+        // prefab types are the ones Platter declares into Game.Prefabs.
+        private const string kParcelComponent = "Platter.Components.Parcel";
+        private const string kLinkedParcelComponent = "Platter.Components.LinkedParcel";
+
         private static bool s_Resolved;
         private static int s_Attempts;
         private const int kAttemptsBeforeGivingUpQuietly = 200;
 
         private static Type s_UIType, s_CacheType;
+        private static Type s_ParcelType, s_LinkedParcelType;
         private static PropertyInfo s_PreZoneType, s_SelectedParcelSize, s_UsingParcelTool;
         private static FieldInfo s_ZoneTypeIndex;
         private static MethodInfo s_GetBuildingCount;
@@ -46,7 +52,7 @@ namespace DistrictMod.Systems
 
         public static string Version { get; private set; }
 
-        private static void Fault(string what)
+        internal static void Fault(string what)
         {
             if (!s_LoggedFaults.Add(what)) return;
             Mod.log.Warn($"[PlatterInterop] {what} (Platter {Version ?? "not loaded"})");
@@ -87,6 +93,14 @@ namespace DistrictMod.Systems
             s_Resolved = true;
             Version = s_UIType.Assembly.GetName().Version?.ToString();
             Mod.log.Info($"[PlatterInterop] Platter {Version} detected.");
+
+            // Components are not systems, so the walk above cannot find them. They come off the
+            // assembly of a system we did find, which is also the only handle on Platter this mod
+            // ever holds — there is deliberately no assembly-name scan (see the comment above).
+            s_ParcelType = s_UIType.Assembly.GetType(kParcelComponent, false);
+            s_LinkedParcelType = s_UIType.Assembly.GetType(kLinkedParcelComponent, false);
+            if (s_ParcelType == null) Fault($"type {kParcelComponent} not found");
+            if (s_LinkedParcelType == null) Fault($"type {kLinkedParcelComponent} not found");
 
             // NonPublic matters: CurrentlyUsingParcelsInObjectTool is a public property with a
             // private getter, so a default GetProperty lookup does not see it at all.
@@ -154,6 +168,20 @@ namespace DistrictMod.Systems
             if (s_MapGetItem == null) Fault("NativeHashMap.get_Item not found");
             if (s_MapSetItem == null) Fault("NativeHashMap.set_Item not found");
             if (s_TotalField == null) Fault("BuildingAccessCount.Total not found");
+        }
+
+        // Platter's Parcel component, which identifies a parcel entity. Null until Platter's
+        // systems exist, so callers must cope with that and retry rather than latching it.
+        internal static Type GetParcelComponentType(World world)
+        {
+            return Probe(world) ? s_ParcelType : null;
+        }
+
+        // Platter's LinkedParcel { Entity m_Parcel } — present on growables generally, so its
+        // presence proves nothing; only a non-null m_Parcel means "this building is on a parcel".
+        internal static Type GetLinkedParcelComponentType(World world)
+        {
+            return Probe(world) ? s_LinkedParcelType : null;
         }
 
         private static ComponentSystemBase GetSystem(World world, Type type)

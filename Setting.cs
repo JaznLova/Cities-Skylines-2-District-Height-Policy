@@ -197,6 +197,14 @@ namespace DistrictHeightPolicy
             LotPolicyState.MaxRerolls = m_MaxRerolls;
             LotPolicyState.Fallback = m_Fallback;
             LotPolicyState.PlatterIntegration = m_EnablePlatterIntegration;
+
+            // Switching the integration off drops the panel's pending selection, so it cannot
+            // silently re-arm and stamp the next parcel placed after it is switched back on.
+            // Overrides already recorded are deliberately left alone — they stay in the save and
+            // resume being enforced when the integration comes back.
+            if (!m_EnablePlatterIntegration)
+                LotPolicyState.PlatterPendingTiers.Clear();
+
             LotPolicyState.ResetLotState();
         }
 
